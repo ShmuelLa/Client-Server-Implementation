@@ -1,0 +1,6 @@
+*.txt
+*.o
+input/
+output/
+input
+output
