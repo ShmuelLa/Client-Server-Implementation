@@ -9,10 +9,12 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <time.h>
 #define BYTESIZE 1024
 #define PORT 9009
 
 int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
+    double operation_time;
     int sending_count = 0;
     char cc_type[256];
     int send_status = 0;
@@ -21,6 +23,7 @@ int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
     socklen_t len = sizeof(cc_type); 
     getsockopt(sender_socket, IPPROTO_TCP, TCP_CONGESTION, cc_type, &len);
     printf("==| Current congestion control algorithm: %s\n", cc_type); 
+    clock_t begin = clock();
     for(int i=0; i < 5; i++) {
         while(fgets(data, BYTESIZE, file) != NULL) {
             send_status = send(sender_socket, data, sizeof(data), 0);
@@ -38,6 +41,9 @@ int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
         }
         rewind(file);
     }
+    clock_t end = clock();
+    operation_time = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("==| %s sending time - %f Seconds\n",cc_type,operation_time);
     printf("==| Number of iterations in %s algorithm = %d\n",cc_type, iteration_counter);
     printf("==| Bytes Sent in %s %d\n",cc_type, total_bytes_sent);
     return sending_count;
