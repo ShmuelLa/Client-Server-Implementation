@@ -9,18 +9,56 @@
 #include <arpa/inet.h> 
 #include <unistd.h>
 #define BYTESIZE 1024
-#define PORT 9008
+#define PORT 9009
+
+int receive_file(int socket, FILE *file, int file_size) {
+    int receive_count = 0;
+    int buffer_validation = 0;
+    int iteration_counter = 0;
+    char buffer[BYTESIZE];
+    int receive_status;
+    int for_loop_index = file_size / BYTESIZE;
+    int file_remainder = file_size % BYTESIZE;
+    for (int j=0; j < 5; j++) {
+        for (int i=0; i < for_loop_index; i++) {
+            receive_status = recv(socket, buffer, BYTESIZE, 0);
+            buffer_validation += receive_status;
+            iteration_counter++;
+            fprintf(file, "%s", buffer);
+            bzero(buffer, BYTESIZE);
+            if (receive_status < 0) {
+                perror("!!| Error in writing file");
+                exit(1);
+                break;
+                return 0;
+            }
+        }
+        if (file_remainder > 0) {
+            receive_status = recv(socket, buffer, file_remainder, 0);
+            buffer_validation += file_remainder;
+            iteration_counter++;
+            fprintf(file, "%s", buffer);
+            bzero(buffer, file_remainder);
+            if (receive_status < 0) {
+                perror("!!| Error in writing file");
+                exit(1);
+                return 0;
+            }
+        }
+        receive_count++;
+    }
+    return receive_count;
+}
 
 int main() {
     int receive_count = 0;
     int file_size;
-    int package_counter = 0;
-    int bytes_received_count =0;
+    int iteration_counter = 0;
     int receive_status;
     char cc_type[256];
-    FILE *fp;
-    char *filename = "/mnt/c/Users/shmue/Documents/Git/Communication_Ex3/output/1mb.txt";
-    fp = fopen(filename, "a");
+    FILE *file;
+    char *filename = "output/1mb.txt";
+    file = fopen(filename, "a");
     char buffer[BYTESIZE];
     char *ip = "127.0.0.1";
     int bind_check;
@@ -38,7 +76,6 @@ int main() {
     printf("____________________Measure (Server)____________________\n");
     printf("==| Current Server Measure CC: %s\n", cc_type); 
     printf("==| Server socket created successfully.\n");
-
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = PORT;
     server_addr.sin_addr.s_addr = inet_addr(ip);
@@ -55,62 +92,35 @@ int main() {
         perror("!!| Error in listening");
         exit(1);
     }
+    //Getting the servers listening port number for later sniffing
+    struct sockaddr_in  local_address;
+    socklen_t socket_addr_size = sizeof(local_address);
+    getsockname(sockfd, (struct sockaddr *)&local_address, &socket_addr_size);
+    printf("==| Current Server Measure Listening Port: %d\n", ntohs(local_address.sin_port));
+
+
     addr_size = sizeof(new_addr);
     new_sock = accept(sockfd, (struct sockaddr*)&new_addr, &addr_size);
+    printf("==| New socket is: %d\n", new_sock); 
     getsockopt(new_sock, IPPROTO_TCP, TCP_CONGESTION, cc_type, &len);
     if(sockfd < 0) {
         perror("!!| Error in socket");
         exit(1);
     }
-    printf("==| Current client accepting socket CC: %s\n", cc_type); 
+    printf("==| Current client accepting CC: %s\n", cc_type); 
     recv(new_sock, &file_size, sizeof(file_size), 0);
     printf("==| Received filesize: %d\n",file_size);
-    int for_loop_index = file_size / BYTESIZE;
-    int file_remainder = file_size % BYTESIZE;
-    // 5000
-    // 1024
-    // 5000 / 1024 = 4  - four time recv (1024)
-    // 5000 % 1024 = x - one time recv (x)
-    for (int j=0; j < 5; j++) {
-        for (int i=0; i < for_loop_index; i++) {
-            receive_status = recv(new_sock, buffer, BYTESIZE, 0);
-            bytes_received_count += receive_status;
-            package_counter++;
-            fprintf(fp, "%s", buffer);
-            bzero(buffer, BYTESIZE);
-            if (receive_status < 0) {
-                perror("!!| Error in writing file");
-                exit(1);
-                break;
-                return 0;
-            }
-        }
-        if (file_remainder > 0) {
-            receive_status = recv(new_sock, buffer, file_remainder, 0);
-            bytes_received_count += file_remainder;
-            package_counter++;
-            fprintf(fp, "%s", buffer);
-            bzero(buffer, file_remainder);
-            if (receive_status < 0) {
-                perror("!!| Error in writing file");
-                exit(1);
-                return 0;
-            }
-        }
-    }
 
-    bytes_received_count = 0;
+
+    receive_count += receive_file(new_sock, file, file_size);
+
+
+
     printf("==| File was received %d times\n", receive_count);
-    printf("==| Packets recivied in cubic %d\n", package_counter);
+    printf("==| Packets recivied in cubic %d\n", iteration_counter);
     printf("==| Data written in the file successfully.\n");
-    fp = fopen(filename, "a");
-
-
-
-
-
-
-    package_counter = 0;
+    file = fopen(filename, "a");
+    iteration_counter = 0;
     strcpy(cc_type, "reno"); 
     len = strlen(cc_type);
     if (setsockopt(new_sock, IPPROTO_TCP, TCP_CONGESTION, cc_type, len) != 0) {
@@ -121,13 +131,13 @@ int main() {
     while (receive_count != 10)
     {
         receive_status = recv(new_sock, buffer, BYTESIZE, 0);
-        fprintf(fp, "%s", buffer);
+        fprintf(file, "%s", buffer);
         bzero(buffer, BYTESIZE);
         if (receive_status == 0) {
             receive_count++;
         }
         else {
-            package_counter++;
+            iteration_counter++;
         }
         if (receive_status < 0) {
             perror("!!| Error in writing file");
@@ -137,8 +147,8 @@ int main() {
         }
     }
     printf("==| File was received %d times\n", receive_count);
-    printf("==| Packets recivied in reno %d\n", package_counter);
-    fclose(fp);
+    printf("==| Packets recivied in reno %d\n", iteration_counter);
+    fclose(file);
     close(sockfd);
     return 0;
 }
