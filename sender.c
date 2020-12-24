@@ -15,7 +15,6 @@
 int main() {
     int packet_counter = 0;
     int sending_count = 0;
-    struct stat buffer;
     int send_status = 0;
     int total_bytes_sent = 0;
     char cc_type[256];
@@ -26,9 +25,9 @@ int main() {
     struct sockaddr_in server_addr;
     FILE *file;
     char *filename = "/mnt/c/Users/shmue/Documents/Git/Communication_Ex3/input/1mb.txt";
+    struct stat buffer;
     stat(filename, &buffer);
     filesize = buffer.st_size;
-    int tmp_filesize = filesize;
     printf("____________________Sender (Client)____________________\n");
     printf("==| Sending received file size: %d Bytes\n", filesize);
     int sender_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -55,7 +54,7 @@ int main() {
         perror("!!| Error in reading file.");
         exit(1);
     }
-    while(total_bytes_sent < (filesize*5)) {
+    for(int i=0; i < 5; i++) {
         while(fgets(data, BYTESIZE, file) != NULL) {
             send_status = send(sender_socket, data, sizeof(data), 0);
             total_bytes_sent += BYTESIZE;
@@ -63,20 +62,14 @@ int main() {
                 perror("!!| Error in sending file.");
                 exit(1);
             }
-            tmp_filesize -= BYTESIZE;
             packet_counter++;
             bzero(data, BYTESIZE);
-            if (tmp_filesize <= 0) {
-                sending_count++;
-                tmp_filesize = filesize;
-            }
             if (fgets(data, BYTESIZE, file) == NULL) {
-                sending_count++
+                sending_count++;
             }
         }
         rewind(file);
     }
-    tmp_filesize = filesize;
     printf("==| File data sent successfully.\n");
     printf("==| Closing the connection.\n");
     printf("==| Packets Sent in cubic %d\n",packet_counter);
@@ -90,23 +83,25 @@ int main() {
     }
     printf("==| Current CC: %s\n", cc_type); 
     packet_counter = 0;
-    for (int i=0; i<= 5; i++) {
+    total_bytes_sent =0;
+    for(int i=0; i < 5; i++) {
         while(fgets(data, BYTESIZE, file) != NULL) {
-            if (send(sender_socket, data, sizeof(data), 0) == -1) {
+            send_status = send(sender_socket, data, sizeof(data), 0);
+            total_bytes_sent += BYTESIZE;
+            if (send_status == -1) {
                 perror("!!| Error in sending file.");
                 exit(1);
             }
-            tmp_filesize -= BYTESIZE;
             packet_counter++;
             bzero(data, BYTESIZE);
-            if (tmp_filesize <= 0) {
+            if (fgets(data, BYTESIZE, file) == NULL) {
                 sending_count++;
-                tmp_filesize = filesize;
             }
         }
         rewind(file);
     }
     printf("==| Packets in reno Sent %d\n",packet_counter);
+    printf("==| Bytes Sent in reno %d\n",total_bytes_sent);
     printf("==| File was sent %d times successfully\n",sending_count);
     close(sender_socket);
     return 0;
