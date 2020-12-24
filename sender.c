@@ -25,7 +25,7 @@ int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
     printf("==| Current congestion control algorithm: %s\n", cc_type); 
     clock_t begin = clock();
     for(int i=0; i < 5; i++) {
-        while(fgets(data, BYTESIZE, file) != NULL) {
+        while(fread(data, BYTESIZE, 1, file) > 0) {
             send_status = send(sender_socket, data, sizeof(data), 0);
             total_bytes_sent += send_status;
             if (send_status == -1) {
@@ -35,7 +35,7 @@ int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
             }
             iteration_counter++;
             bzero(data, BYTESIZE);
-            if (fgets(data, BYTESIZE, file) == NULL) {
+            if (fread(data, BYTESIZE, 1, file) <= 0) {
                 sending_count++;
             }
         }
@@ -59,6 +59,7 @@ int main() {
     struct sockaddr_in server_addr;
     FILE *file;
     char *filename = "input/1mb.txt";
+    file = fopen(filename, "r");
     struct stat buffer;
     stat(filename, &buffer);
     filesize = buffer.st_size;
@@ -83,7 +84,6 @@ int main() {
     printf("==| Connected to Server.\n");
     printf("==| Sending received file size: %d Bytes\n", filesize);
     send(sender_socket, &filesize, sizeof(filesize), 0);
-    file = fopen(filename, "r");
     if (file == NULL) {
         perror("!!| Error in file reading");
         exit(1);

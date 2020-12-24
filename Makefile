@@ -14,4 +14,4 @@ test:
 	./test.sh
 
 clean:
-	rm -f *.o
+	rm -f *.o output/1mb.txt
