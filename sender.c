@@ -13,7 +13,21 @@
 #define BYTESIZE 1024
 #define PORT 9009
 
-int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
+int send_file(int sender_socket, char *filename) {
+    FILE *file;
+    file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("!!| Error in file reading");
+        exit(1);
+        return -1;
+    }    
+    struct stat filesize_buffer;
+    stat(filename, &filesize_buffer);
+    int filesize = filesize_buffer.st_size;
+    int for_loop_index = filesize / BYTESIZE;
+    int file_remainder = filesize % BYTESIZE;
+    int read_validation = 0;
+    int total_bytes_sent = 0;
     double operation_time;
     int sending_count = 0;
     char cc_type[256];
@@ -25,20 +39,39 @@ int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
     printf("==| Current congestion control algorithm: %s\n", cc_type); 
     clock_t begin = clock();
     for(int i=0; i < 5; i++) {
-        while(fread(data, BYTESIZE, 1, file) > 0) {
-            send_status = send(sender_socket, data, sizeof(data), 0);
+        for (int j=0; j < for_loop_index; j++) {
+            read_validation = fread(data, BYTESIZE, 1, file);
+            if (read_validation < 0) {
+                perror("!!| Error in reading file.");
+                exit(1);
+                return -1;                
+            }
+            send_status = send(sender_socket, data, BYTESIZE, 0);
             total_bytes_sent += send_status;
             if (send_status == -1) {
                 perror("!!| Error in sending file.");
                 exit(1);
                 return -1;
             }
-            iteration_counter++;
-            bzero(data, BYTESIZE);
-            if (fread(data, BYTESIZE, 1, file) <= 0) {
-                sending_count++;
-            }
+            iteration_counter++;         
         }
+        if (file_remainder > 0) {
+            read_validation = fread(data, file_remainder, 1, file);
+            if (read_validation < 0) {
+                perror("!!| Error in reading file.");
+                exit(1);
+                return -1;                
+            }            
+            send_status = send(sender_socket, data, file_remainder, 0);
+            total_bytes_sent += send_status;
+            if (send_status == -1) {
+                perror("!!| Error in sending file.");
+                exit(1);
+                return -1;
+            }
+            iteration_counter++;          
+        }
+        sending_count++;
         rewind(file);
     }
     clock_t end = clock();
@@ -46,6 +79,7 @@ int send_file(int sender_socket, FILE *file, int total_bytes_sent) {
     printf("==| %s sending time - %f Seconds\n",cc_type,operation_time);
     printf("==| Number of iterations in %s algorithm = %d\n",cc_type, iteration_counter);
     printf("==| Bytes Sent in %s %d\n",cc_type, total_bytes_sent);
+    fclose(file);
     return sending_count;
 }
 
@@ -53,16 +87,12 @@ int main() {
     char cc_type[256];
     socklen_t len = sizeof(cc_type);
     int sending_count = 0;
-    int total_bytes_sent = 0;
     char *ip = "127.0.0.1";
-    int filesize;
     struct sockaddr_in server_addr;
-    FILE *file;
     char *filename = "input/1mb.txt";
-    file = fopen(filename, "r");
-    struct stat buffer;
-    stat(filename, &buffer);
-    filesize = buffer.st_size;
+    struct stat filesize_buffer;
+    stat(filename, &filesize_buffer);
+    int filesize = filesize_buffer.st_size;
     printf("____________________Sender (Client)____________________\n");
     //Settings the client socket
     int sender_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -84,12 +114,8 @@ int main() {
     printf("==| Connected to Server.\n");
     printf("==| Sending received file size: %d Bytes\n", filesize);
     send(sender_socket, &filesize, sizeof(filesize), 0);
-    if (file == NULL) {
-        perror("!!| Error in file reading");
-        exit(1);
-    }
-    sending_count += send_file(sender_socket, file, total_bytes_sent);
-    printf("==| File was sent %d times successfully\n",sending_count);
+    sending_count += send_file(sender_socket, filename);
+    printf("==| File was sent a total of %d times successfully\n",sending_count);
     strcpy(cc_type, "reno"); 
     len = strlen(cc_type);
     if (setsockopt(sender_socket, IPPROTO_TCP, TCP_CONGESTION, cc_type, len) != 0) {
@@ -97,9 +123,8 @@ int main() {
         return -1;
     }
     printf("==| Congestion Control Algorithm changed to %s, Resending files\n", cc_type); 
-    total_bytes_sent =0;
-    sending_count += send_file(sender_socket, file, total_bytes_sent);
-    printf("==| File was sent %d times successfully\n",sending_count);
+    sending_count += send_file(sender_socket, filename);
+    printf("==| File was sent a total of %d times successfully\n",sending_count);
     close(sender_socket);
     return 0;
 }

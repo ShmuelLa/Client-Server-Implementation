@@ -64,7 +64,7 @@ int main() {
     char cc_type[256];
     FILE *file;
     char *filename = "output/1mb.txt";
-    file = fopen(filename, "w+");
+    file = fopen(filename, "w");
     char *ip = "127.0.0.1";
     int bind_check;
     socklen_t len;
