@@ -79,7 +79,7 @@ int main() {
         exit(1);
     }
     printf("____________________Measure (Server)____________________\n");
-    printf("==| Current Server Measure CC: %s\n", cc_type); 
+    printf("==| Current Server Measure Congestion Control algorithm: %s\n", cc_type); 
     printf("==| Server socket created successfully.\n");
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = PORT;
@@ -111,7 +111,7 @@ int main() {
         perror("!!| Error in socket");
         exit(1);
     }
-    printf("==| Current client accepting CC: %s\n", cc_type); 
+    printf("==| Current client accepting socket Congestion Control algorithm: %s\n", cc_type); 
     recv(new_sock, &file_size, sizeof(file_size), 0);
     printf("==| Received filesize: %d\n",file_size);
 
@@ -125,10 +125,10 @@ int main() {
     strcpy(cc_type, "reno"); 
     len = strlen(cc_type);
     if (setsockopt(new_sock, IPPROTO_TCP, TCP_CONGESTION, cc_type, len) != 0) {
-        perror("==| Problem changing the CC to reno"); 
+        perror("==| Problem changing the Congestion Control to reno"); 
         return -1;
     }
-    printf("==| Current changed CC: %s\n", cc_type);
+    printf("==| Congestion Control algorithm changed to: %s\n", cc_type);
     //Receive again in reno
     receive_count += receive_file(new_sock, file, file_size, cc_type);
 
