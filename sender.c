@@ -93,7 +93,7 @@ int main() {
     struct stat filesize_buffer;
     stat(filename, &filesize_buffer);
     int filesize = filesize_buffer.st_size;
-    printf("____________________Sender (Client)____________________\n");
+    printf("_____________________________Sender (Client)_____________________________\n");
     //Settings the client socket
     int sender_socket = socket(AF_INET, SOCK_STREAM, 0);
     if(sender_socket < 0) {

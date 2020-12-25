@@ -2,8 +2,8 @@ CC = gcc
 CFLAG = -Wall -Wextra -g -o
 
 all: 
-	$(CC) sender.c $(CFLAG) 1.o
-	$(CC) measure.c $(CFLAG) 2.o
+	$(CC) sender.c $(CFLAG) sender_client.0
+	$(CC) measure.c $(CFLAG) measure_server.o
 
 git:
 	git add -A

@@ -13,7 +13,8 @@
 #define PORT 9009
 
 int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
-    double operation_time;
+    double total_operation_time;
+    double singular_operation_time;
     int receive_count = 0;
     int buffer_validation = 0;
     int iteration_counter = 0;
@@ -21,8 +22,8 @@ int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
     int receive_status;
     int for_loop_index = file_size / BYTESIZE;
     int file_remainder = file_size % BYTESIZE;
-    clock_t begin = clock();
     for (int j=0; j < 5; j++) {
+        clock_t begin = clock();
         for (int i=0; i < for_loop_index; i++) {
             receive_status = recv(socket, buffer, BYTESIZE, 0);
             buffer_validation += receive_status;
@@ -49,10 +50,13 @@ int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
             }
         }
         receive_count++;
+        clock_t end = clock();
+        singular_operation_time = (double)(end - begin) / CLOCKS_PER_SEC;
+        total_operation_time += singular_operation_time;
+        printf("==| File No' %d receiving time int %s = %f Seconds\n",j+1,cc_type ,singular_operation_time);
     }
-    clock_t end = clock();
-    operation_time = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("==| %s receiving time - %f Seconds\n",cc_type ,operation_time);
+    total_operation_time = total_operation_time/5;
+    printf("==| %s average receiving time - %f Seconds\n",cc_type ,total_operation_time);
     printf("==| Number of iterations in %s algorithm - %d\n",cc_type , iteration_counter);
     printf("==| Bytes received in %s algorithm - %d\n",cc_type , buffer_validation);
     return receive_count;
@@ -78,7 +82,7 @@ int main() {
         perror("!!| Error in socket");
         exit(1);
     }
-    printf("____________________Measure (Server)____________________\n");
+    printf("_____________________________Measure (Server)_____________________________\n");
     printf("==| Current Server Measure Congestion Control algorithm: %s\n", cc_type); 
     printf("==| Server socket created successfully.\n");
     server_addr.sin_family = AF_INET;
