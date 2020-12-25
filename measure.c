@@ -63,6 +63,8 @@ int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
 }
 
 int main() {
+    clock_t begin = clock();
+    double total_measureing_time;
     int receive_count = 0;;
     int file_size;
     char cc_type[256];
@@ -139,6 +141,9 @@ int main() {
     printf("==| File was received %d times\n", receive_count);
     fclose(file);
     close(measure_socket);
+    clock_t end = clock();
+    total_measureing_time = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("==|____ Total measuring process time = %f____|\n", total_measureing_time);
     return 0;
 }
  

@@ -84,6 +84,8 @@ int send_file(int sender_socket, char *filename) {
 }
 
 int main() {
+    clock_t begin = clock();
+    double total_sending_time;
     char cc_type[256];
     socklen_t len = sizeof(cc_type);
     int sending_count = 0;
@@ -126,5 +128,8 @@ int main() {
     sending_count += send_file(sender_socket, filename);
     printf("==| File was sent a total of %d times successfully\n",sending_count);
     close(sender_socket);
+    clock_t end = clock();
+    total_sending_time = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("==|____Total sending process time = %f____|\n", total_sending_time);
     return 0;
 }
