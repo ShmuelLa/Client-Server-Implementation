@@ -57,7 +57,7 @@ int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
         uint64_t end_precision = (end.tv_sec*1000000000) + end.tv_nsec;
         singular_operation_time = (end_precision - start_precision) * 1e-9;
         total_operation_time += singular_operation_time;
-        printf("==| File No' %d receiving time int %s = %f Seconds\n",j+1,cc_type ,singular_operation_time);
+        printf("==| File No' %d receiving time in %s = %f Seconds\n",j+1,cc_type ,singular_operation_time);
     }
     total_operation_time = total_operation_time/5;
     printf("==| %s average receiving time - %f Seconds\n",cc_type ,total_operation_time);
