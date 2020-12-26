@@ -10,10 +10,13 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 #define BYTESIZE 1024
-#define PORT 9009
+#define PORT 9010
 
 int send_file(int sender_socket, char *filename) {
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
     FILE *file;
     file = fopen(filename, "r");
     if (file == NULL) {
@@ -28,7 +31,6 @@ int send_file(int sender_socket, char *filename) {
     int file_remainder = filesize % BYTESIZE;
     int read_validation = 0;
     int total_bytes_sent = 0;
-    double operation_time;
     int sending_count = 0;
     char cc_type[256];
     int send_status = 0;
@@ -37,7 +39,6 @@ int send_file(int sender_socket, char *filename) {
     socklen_t len = sizeof(cc_type); 
     getsockopt(sender_socket, IPPROTO_TCP, TCP_CONGESTION, cc_type, &len);
     printf("==| Current congestion control algorithm: %s\n", cc_type); 
-    clock_t begin = clock();
     for(int i=0; i < 5; i++) {
         for (int j=0; j < for_loop_index; j++) {
             read_validation = fread(data, BYTESIZE, 1, file);
@@ -74,8 +75,10 @@ int send_file(int sender_socket, char *filename) {
         sending_count++;
         rewind(file);
     }
-    clock_t end = clock();
-    operation_time = (double)(end - begin) / CLOCKS_PER_SEC;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    uint64_t start_precision = (start.tv_sec*1000000000) + start.tv_nsec;
+    uint64_t end_precision = (end.tv_sec*1000000000) + end.tv_nsec;
+    double operation_time = (end_precision - start_precision) * 1e-9;
     printf("==| %s sending time - %f Seconds\n",cc_type,operation_time);
     printf("==| Number of iterations in %s algorithm = %d\n",cc_type, iteration_counter);
     printf("==| Bytes Sent in %s %d\n",cc_type, total_bytes_sent);
@@ -84,8 +87,8 @@ int send_file(int sender_socket, char *filename) {
 }
 
 int main() {
-    clock_t begin = clock();
-    double total_sending_time;
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
     char cc_type[256];
     socklen_t len = sizeof(cc_type);
     int sending_count = 0;
@@ -128,8 +131,10 @@ int main() {
     sending_count += send_file(sender_socket, filename);
     printf("==| File was sent a total of %d times successfully\n",sending_count);
     close(sender_socket);
-    clock_t end = clock();
-    total_sending_time = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("==|____Total sending process time = %f____|\n", total_sending_time);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    uint64_t start_precision = (start.tv_sec*1000000000) + start.tv_nsec;
+    uint64_t end_precision = (end.tv_sec*1000000000) + end.tv_nsec;
+    double total_sending_time = (end_precision - start_precision) * 1e-9;
+    printf("==|__________Total sending process time = %f__________|\n", total_sending_time);
     return 0;
 }

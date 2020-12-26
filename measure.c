@@ -9,10 +9,12 @@
 #include <arpa/inet.h> 
 #include <unistd.h>
 #include <time.h>
+#include <sys/time.h>
 #define BYTESIZE 1024
-#define PORT 9009
+#define PORT 9010
 
 int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
+    struct timespec start, end;
     double total_operation_time;
     double singular_operation_time;
     int receive_count = 0;
@@ -23,7 +25,7 @@ int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
     int for_loop_index = file_size / BYTESIZE;
     int file_remainder = file_size % BYTESIZE;
     for (int j=0; j < 5; j++) {
-        clock_t begin = clock();
+        clock_gettime(CLOCK_MONOTONIC, &start);
         for (int i=0; i < for_loop_index; i++) {
             receive_status = recv(socket, buffer, BYTESIZE, 0);
             buffer_validation += receive_status;
@@ -50,8 +52,10 @@ int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
             }
         }
         receive_count++;
-        clock_t end = clock();
-        singular_operation_time = (double)(end - begin) / CLOCKS_PER_SEC;
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        uint64_t start_precision = (start.tv_sec*1000000000) + start.tv_nsec;
+        uint64_t end_precision = (end.tv_sec*1000000000) + end.tv_nsec;
+        singular_operation_time = (end_precision - start_precision) * 1e-9;
         total_operation_time += singular_operation_time;
         printf("==| File No' %d receiving time int %s = %f Seconds\n",j+1,cc_type ,singular_operation_time);
     }
@@ -63,18 +67,16 @@ int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
 }
 
 int main() {
-    clock_t begin = clock();
-    double total_measureing_time;
+    struct timespec total_start, total_end;
+    clock_gettime(CLOCK_MONOTONIC, &total_start);
     int receive_count = 0;;
-    int file_size;
+    int file_size, bind_check, measure_socket, new_sock;
     char cc_type[256];
     FILE *file;
     char *filename = "output/1mb.txt";
     file = fopen(filename, "w");
     char *ip = "127.0.0.1";
-    int bind_check;
     socklen_t len;
-    int measure_socket, new_sock;
     struct sockaddr_in server_addr, new_addr;
     socklen_t addr_size;
     measure_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -90,7 +92,6 @@ int main() {
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = PORT;
     server_addr.sin_addr.s_addr = inet_addr(ip);
-
     bind_check = bind(measure_socket, (struct sockaddr*)&server_addr, sizeof(server_addr));
     if(bind_check < 0) {
         perror("!!| Error in bind");
@@ -141,9 +142,11 @@ int main() {
     printf("==| File was received %d times\n", receive_count);
     fclose(file);
     close(measure_socket);
-    clock_t end = clock();
-    total_measureing_time = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("==|____ Total measuring process time = %f____|\n", total_measureing_time);
+    clock_gettime(CLOCK_MONOTONIC, &total_end);
+    uint64_t start_precision = (total_start.tv_sec*1000000000) + total_start.tv_nsec;
+    uint64_t end_precision = (total_end.tv_sec*1000000000) + total_end.tv_nsec;
+    double total_measureing_time = (end_precision - start_precision) * 1e-9;
+    printf("==|__________Total measuring process time = %f__________|\n", total_measureing_time);
     return 0;
 }
  
