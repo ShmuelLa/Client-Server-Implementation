@@ -13,6 +13,16 @@
 #define BYTESIZE 1024
 #define PORT 9010
 
+/**
+ * @brief The main receiving function, receives files from a client and writes them 5 times.
+ * each congestion control iteration runs 5 times according to the files size
+ * 
+ * @param socket The servers accepting socket
+ * @param file a pointer to the received file
+ * @param file_size the file size received from the client
+ * @param cc_type congestion control algorithm type
+ * @return int returns the number of times the file was received, -1 if there was an error
+ */
 int receive_file(int socket, FILE *file, int file_size, char cc_type[256]) {
     struct timespec start, end;
     double total_operation_time;
@@ -109,8 +119,6 @@ int main() {
     socklen_t socket_addr_size = sizeof(local_address);
     getsockname(measure_socket, (struct sockaddr *)&local_address, &socket_addr_size);
     printf("==| Current Server Measure Listening Port: %d\n", ntohs(local_address.sin_port));
-
-
     addr_size = sizeof(new_addr);
     new_sock = accept(measure_socket, (struct sockaddr*)&new_addr, &addr_size);
     getsockopt(new_sock, IPPROTO_TCP, TCP_CONGESTION, cc_type, &len);
@@ -124,8 +132,6 @@ int main() {
 
     //Receive in cubic
     receive_count += receive_file(new_sock, file, file_size, cc_type);
-
-
     printf("==| File was received %d times\n", receive_count);
     printf("==| Data written in the file successfully.\n");
     //file = fopen(filename, "a");
@@ -138,7 +144,6 @@ int main() {
     printf("==| Congestion Control algorithm changed to: %s\n", cc_type);
     //Receive again in reno
     receive_count += receive_file(new_sock, file, file_size, cc_type);
-
     printf("==| File was received %d times\n", receive_count);
     fclose(file);
     close(measure_socket);

@@ -14,6 +14,13 @@
 #define BYTESIZE 1024
 #define PORT 9010
 
+/**
+ * @brief The main sending function of the project, sends a file 5 times
+ * 
+ * @param sender_socket The server socket to send the file to
+ * @param filename the file path
+ * @return int the number of times the file was sent, -1 if there was an error
+ */
 int send_file(int sender_socket, char *filename) {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
