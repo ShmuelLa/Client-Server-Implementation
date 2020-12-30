@@ -1,3 +1,4 @@
+![alt text](docs/intro.gif)
 # C - Client Server Implementation
 
 Implements a simple client server. In this project we have two main files:
